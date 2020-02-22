@@ -318,10 +318,12 @@ escrypt_kdf_sse(escrypt_local_t *local, const uint8_t *passwd, size_t passwdlen,
 
 /* Sanity-check parameters. */
 # if SIZE_MAX > UINT32_MAX
+/* LCOV_EXCL_START */
     if (buflen > (((uint64_t)(1) << 32) - 1) * 32) {
         errno = EFBIG;
         return -1;
     }
+/* LCOV_EXCL_END */
 # endif
     if ((uint64_t)(r) * (uint64_t)(p) >= ((uint64_t) 1 << 30)) {
         errno = EFBIG;
@@ -339,6 +341,7 @@ escrypt_kdf_sse(escrypt_local_t *local, const uint8_t *passwd, size_t passwdlen,
         errno = EINVAL;
         return -1;
     }
+/* LCOV_EXCL_START */
     if ((r > SIZE_MAX / 128 / p) ||
 # if SIZE_MAX / 256 <= UINT32_MAX
         (r > SIZE_MAX / 256) ||
@@ -347,26 +350,31 @@ escrypt_kdf_sse(escrypt_local_t *local, const uint8_t *passwd, size_t passwdlen,
         errno = ENOMEM;
         return -1;
     }
+/* LCOV_EXCL_END */
 
     /* Allocate memory. */
     B_size = (size_t) 128 * r * p;
     V_size = (size_t) 128 * r * N;
     need   = B_size + V_size;
+/* LCOV_EXCL_START */
     if (need < V_size) {
         errno = ENOMEM;
         return -1;
     }
+/* LCOV_EXCL_END */
     XY_size = (size_t) 256 * r + 64;
     need += XY_size;
+/* LCOV_EXCL_START */
     if (need < XY_size) {
         errno = ENOMEM;
         return -1;
     }
+/* LCOV_EXCL_END */
     if (local->size < need) {
-        if (free_region(local)) {
+        if (escrypt_free_region(local)) {
             return -1; /* LCOV_EXCL_LINE */
         }
-        if (!alloc_region(local, need)) {
+        if (!escrypt_alloc_region(local, need)) {
             return -1; /* LCOV_EXCL_LINE */
         }
     }
@@ -375,7 +383,7 @@ escrypt_kdf_sse(escrypt_local_t *local, const uint8_t *passwd, size_t passwdlen,
     XY = (uint32_t *) ((uint8_t *) V + V_size);
 
     /* 1: (B_0 ... B_{p-1}) <-- PBKDF2(P, S, 1, p * MFLen) */
-    PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, 1, B, B_size);
+    escrypt_PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, 1, B, B_size);
 
     /* 2: for i = 0 to p - 1 do */
     for (i = 0; i < p; i++) {
@@ -384,7 +392,7 @@ escrypt_kdf_sse(escrypt_local_t *local, const uint8_t *passwd, size_t passwdlen,
     }
 
     /* 5: DK <-- PBKDF2(P, B, 1, dkLen) */
-    PBKDF2_SHA256(passwd, passwdlen, B, B_size, 1, buf, buflen);
+    escrypt_PBKDF2_SHA256(passwd, passwdlen, B, B_size, 1, buf, buflen);
 
     /* Success! */
     return 0;

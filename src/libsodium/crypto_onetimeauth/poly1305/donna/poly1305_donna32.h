@@ -5,7 +5,7 @@
 
 #if defined(_MSC_VER)
 # define POLY1305_NOINLINE __declspec(noinline)
-#elif defined(__GNUC__)
+#elif defined(__clang__) || defined(__GNUC__)
 # define POLY1305_NOINLINE __attribute__((noinline))
 #else
 # define POLY1305_NOINLINE
@@ -28,7 +28,7 @@ typedef struct poly1305_state_internal_t {
 static void
 poly1305_init(poly1305_state_internal_t *st, const unsigned char key[32])
 {
-    /* r &= 0xffffffc0ffffffc0ffffffc0fffffff */
+    /* r &= 0xffffffc0ffffffc0ffffffc0fffffff - wiped after finalization */
     st->r[0] = (LOAD32_LE(&key[0])) & 0x3ffffff;
     st->r[1] = (LOAD32_LE(&key[3]) >> 2) & 0x3ffff03;
     st->r[2] = (LOAD32_LE(&key[6]) >> 4) & 0x3ffc0ff;
